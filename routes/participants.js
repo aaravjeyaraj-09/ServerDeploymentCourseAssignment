@@ -143,4 +143,124 @@ router.get('/', async (req, res) => {
     }
 });
 
+/**
+* /participants/details GET
+*/
+router.get('/details', async (req, res) => {
+    try {
+        const [rows] = await pool.query(
+            'SELECT email, firstname, lastname FROM participants'
+        );
+
+        res.status(200).json({
+            status: 'success',
+            data: rows
+        });
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            error: 'Failed to retrieve participant details'
+        });
+    }
+});
+
+/**
+ * /participants/details/:email
+ */
+router.get('/details/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+
+        const [rows] = await pool.query(
+            'SELECT firstname, lastname, dob FROM participants WHERE email = ?',
+            [email]
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                error: 'Participant not found'
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: rows[0]
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: 'Failed to retrieve participant details'
+        });
+    }
+});
+
+/**
+ *participants/work/:email GET 
+**/
+router.get('/work/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+
+        const [rows] = await pool.query(
+            'SELECT companyname, salary, currency FROM work WHERE email = ?',
+            [email]
+
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                error: 'Work details not found for this participant'
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: rows[0]
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: 'Failed to retrieve work details'
+        });
+    }
+});
+
+/**
+ * participants/home/:email GET
+ * **/
+router.get('/home/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+
+        const [rows] = await pool.query(
+            'SELECT country, city FROM home WHERE email = ?',
+            [email]
+
+        );
+
+        if (rows.length === 0) {
+            return res.status(404).json({
+                error: 'Home details not found for this participant'
+            });
+        }
+
+        res.status(200).json({
+            status: 'success',
+            data: rows[0]
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: 'Failed to retrieve home details'
+        });
+    }
+});
+
 module.exports = router;
