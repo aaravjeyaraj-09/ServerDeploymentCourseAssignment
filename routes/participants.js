@@ -263,4 +263,149 @@ router.get('/home/:email', async (req, res) => {
     }
 });
 
-module.exports = router;
+/** 
+ * participants//:email DELETE
+ * **/
+router.delete('/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+
+        // Check if participant exists
+        const [existing] = await pool.query(
+            'SELECT email FROM participants WHERE email = ?',
+            [email]
+        );
+
+        if (existing.length === 0) {
+            return res.status(404).json({
+                error: 'Participant not found'
+            });
+        }
+
+        // Delete related data first
+        await pool.query(
+            'DELETE FROM work WHERE email = ?',
+            [email]
+        );
+
+        await pool.query(
+            'DELETE FROM home WHERE email = ?',
+            [email]
+        );
+
+        await pool.query(
+            'DELETE FROM participants WHERE email = ?',
+            [email]
+        );
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Participant deleted successfully'
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: 'Failed to delete participant'
+        });
+    }
+});
+
+/**
+ * /participants/:email PUT * The request should have the exact same format as for /participants/add POST request.
+ */
+router.put('/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        const { participant, work, home } = req.body;
+
+        // Validate structure
+        if (!participant || !work || !home) {
+            return res.status(400).json({
+                error: 'participant, work, and home objects are required'
+            });
+        }
+
+        const { firstname, lastname, dob } = participant;
+        const { companyname, salary, currency } = work;
+        const { country, city } = home;
+
+        // Participant validation
+        if (!firstname || !lastname || !dob) {
+            return res.status(400).json({
+                error: 'All participant fields are required'
+            });
+        }
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dob)) {
+            return res.status(400).json({
+                error: 'DOB must be in YYYY-MM-DD format'
+            });
+        }
+
+        // Work validation
+        if (!companyname || salary === undefined || !currency) {
+            return res.status(400).json({
+                error: 'All work fields are required'
+            });
+        }
+
+        if (isNaN(salary)) {
+            return res.status(400).json({
+                error: 'Salary must be a number'
+            });
+        }
+
+        // Home validation
+        if (!country || !city) {
+            return res.status(400).json({
+                error: 'All home fields are required'
+            });
+        }
+
+        // Check if participant exists
+        const [existing] = await pool.query(
+            'SELECT email FROM participants WHERE email = ?',
+            [email]
+        );
+
+        if (existing.length === 0) {
+            return res.status(404).json({
+                error: 'Participant not found'
+            });
+        }
+
+        // Update participant
+        await pool.query(
+            'UPDATE participants SET firstname = ?, lastname = ?, dob = ? WHERE email = ?',
+            [firstname, lastname, dob, email]
+        );
+
+        // Update work
+        await pool.query(
+            'UPDATE work SET companyname = ?, salary = ?, currency = ? WHERE email = ?',
+            [companyname, salary, currency, email]
+        );
+
+        // Update home
+        await pool.query(
+            'UPDATE home SET country = ?, city = ? WHERE email = ?',
+            [country, city, email]
+        );
+
+        res.status(200).json({
+            status: 'success',
+            message: 'Participant updated successfully'
+        });
+
+    } catch (error) {
+        console.error(error);
+
+        res.status(500).json({
+            error: 'Failed to update participant'
+        });
+    }
+});
+
+  module.exports = router;
